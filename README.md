@@ -35,7 +35,7 @@ SiliconMind routes your question to the right specialist agent automatically:
 
 ```bash
 # 1. Clone
-git clone https://github.com/YOUR_USERNAME/siliconmind.git
+git clone https://github.com/RekhanthReddy/siliconmind.git
 cd siliconmind
 
 # 2. Create conda environment
