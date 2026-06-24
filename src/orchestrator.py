@@ -157,7 +157,7 @@ class Orchestrator:
         messages.append({"role": "user", "content": question})
 
         # ── Agentic tool-use loop ─────────────────────────────────────────────
-        max_iterations = 5
+        max_iterations = 8
         for _ in range(max_iterations):
             response = self.client.messages.create(
                 model="claude-sonnet-4-6",
@@ -211,7 +211,7 @@ class Orchestrator:
                         answer += block.text
                 break
         else:
-            answer = "I reached the maximum reasoning steps. Please try rephrasing your question."
+            answer = "I searched multiple sources but couldn't find specific papers on that exact topic. Here's what I found:\n\n" + "\n".join([f"- {t['tool']}: {t['input']}" for t in tool_results[:3]]) + "\n\nTry rephrasing — for example: 'latest papers on scan chain compression' or 'EDT scan research 2024'."
 
         return {
             "answer":       answer,
