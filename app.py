@@ -1,5 +1,8 @@
 import streamlit as st
 import os
+if "ANTHROPIC_API_KEY" in st.secrets:
+    os.environ["ANTHROPIC_API_KEY"] = st.secrets["ANTHROPIC_API_KEY"]
+    
 from src.orchestrator import Orchestrator
 from src.ingestion import extract_text, extract_from_url, smart_chunk, index_to_chromadb
 from src.retrieval import init_vectorstore, retrieve
