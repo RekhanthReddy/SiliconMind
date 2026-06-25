@@ -101,7 +101,7 @@ st.markdown("""
 <div class="main-header">
     <h2 style="margin:0;font-size:1.6rem;">🔬 SiliconMind v2.0</h2>
     <p style="margin:4px 0 0;opacity:0.85;font-size:0.9rem;">
-        Multi-Agent DFT & Semiconductor Validation AI · LD7237 · Northumbria University
+        Multi-Agent DFT & Semiconductor Validation AI · Northumbria University
     </p>
 </div>
 """, unsafe_allow_html=True)
