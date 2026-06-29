@@ -1,12 +1,16 @@
 import streamlit as st
 import os
-if "ANTHROPIC_API_KEY" in st.secrets:
-    os.environ["ANTHROPIC_API_KEY"] = st.secrets["ANTHROPIC_API_KEY"]
+try:
+    if "ANTHROPIC_API_KEY" in st.secrets:
+        os.environ["ANTHROPIC_API_KEY"] = st.secrets["ANTHROPIC_API_KEY"]
+except Exception:
+    pass
     
 from src.orchestrator import Orchestrator
 from src.ingestion import extract_text, extract_from_url, smart_chunk, index_to_chromadb
 from src.retrieval import init_vectorstore, retrieve
 from src.feedback import log_feedback, get_stats
+from src.memory import save_message, load_history, get_sessions, delete_session
 
 st.set_page_config(page_title="SiliconMind", page_icon="🔬", layout="wide")
 
@@ -178,7 +182,20 @@ with st.sidebar:
         st.markdown("### 📊 Answer Quality")
         st.metric("Satisfaction", f"{stats['satisfaction_pct']}%",
                   f"{stats['total_ratings']} ratings")
-
+    st.divider()
+    st.markdown("### 💬 Chat Sessions")
+    sessions = get_sessions()
+    session_names = [s["session"] for s in sessions] + ["+ New Session"]
+    chosen = st.selectbox("Load session", session_names, index=0)
+    if chosen == "+ New Session":
+        new_name = st.text_input("Session name", placeholder="e.g. scan_debug_28nm")
+        if new_name:
+            st.session_state["current_session"] = new_name
+    else:
+        if st.button("📂 Load", use_container_width=True):
+            st.session_state["current_session"] = chosen
+            st.session_state.messages = load_history(chosen)
+            st.rerun()
     if st.button("🗑️ Clear Chat", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
@@ -194,6 +211,7 @@ with st.sidebar:
 # ── Session State ─────────────────────────────────────────────────
 if "messages"     not in st.session_state: st.session_state.messages     = []
 if "orchestrator" not in st.session_state: st.session_state.orchestrator = None
+if "current_session" not in st.session_state: st.session_state["current_session"] = "default"
 
 # ── Suggestions ───────────────────────────────────────────────────
 if not st.session_state.messages:
@@ -308,6 +326,7 @@ if prompt:
         st.stop()
 
     st.session_state.messages.append({"role":"user","content":prompt})
+    save_message("user", prompt, session=st.session_state.get("current_session","default"))
     with st.chat_message("user", avatar="👤"):
         st.markdown(prompt)
 
@@ -347,3 +366,6 @@ if prompt:
         }
         render_assistant_msg(new_msg, len(st.session_state.messages))
         st.session_state.messages.append(new_msg)
+        save_message("assistant", result["answer"], agent=result["agent"],
+             tools=result.get("tools_used",[]),
+             session=st.session_state.get("current_session","default"))
