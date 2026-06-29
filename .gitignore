@@ -7,3 +7,4 @@ vectorstore/
 *.egg-info/
 .DS_Store
 siliconmind_feedback.db
+siliconmind_memory.db
