@@ -3,12 +3,17 @@ import os
 try:
     if "ANTHROPIC_API_KEY" in st.secrets:
         os.environ["ANTHROPIC_API_KEY"] = st.secrets["ANTHROPIC_API_KEY"]
+    if "PINECONE_API_KEY" in st.secrets:
+        os.environ["PINECONE_API_KEY"] = st.secrets["PINECONE_API_KEY"]
+    if "PINECONE_HOST" in st.secrets:
+        os.environ["PINECONE_HOST"] = st.secrets["PINECONE_HOST"]
 except Exception:
     pass
     
 from src.orchestrator import Orchestrator
 from src.ingestion import extract_text, extract_from_url, smart_chunk, index_to_chromadb
 from src.retrieval import init_vectorstore, retrieve
+from src.pinecone_store import upsert_chunks, search_chunks, get_doc_count
 from src.feedback import log_feedback, get_stats
 from src.memory import save_message, load_history, get_sessions, delete_session
 
@@ -141,15 +146,14 @@ with st.sidebar:
                                      type=["pdf","txt","docx","pptx"],
                                      accept_multiple_files=True)
         if uploaded and st.button("📥 Index Documents", use_container_width=True):
-            vs = init_vectorstore()
             total = 0
-            with st.spinner("Indexing..."):
+            with st.spinner("Indexing to Pinecone..."):
                 for f in uploaded:
                     text, fname = extract_text(f)
                     chunks = smart_chunk(text, fname)
-                    total += index_to_chromadb(chunks, vs)
+                    total += upsert_chunks(chunks)
             st.session_state.indexed = True
-            st.success(f"✅ {total} chunks indexed")
+            st.success(f"✅ {total} chunks stored in Pinecone")
 
     with doc_tabs[1]:
         url_input = st.text_input("ArXiv or paper URL",
@@ -166,8 +170,11 @@ with st.sidebar:
                 else:
                     st.error("Could not fetch URL")
 
-    if st.session_state.get("indexed"):
-        st.info("📦 Documents ready")
+    doc_count = get_doc_count()
+    if doc_count > 0:
+        st.info(f"📦 {doc_count} chunks stored in Pinecone")
+    else:
+        st.info("📦 No documents uploaded yet")
 
     st.divider()
     st.markdown("### 🎯 Active Topics")
@@ -337,9 +344,8 @@ if prompt:
 
             # RAG retrieval with confidence scoring (Sprint 2)
             local_context, local_sources, confidence = "", [], {}
-            if use_rag and st.session_state.get("indexed"):
-                vs = init_vectorstore()
-                local_context, local_sources, confidence = retrieve(prompt, vs)
+            if use_rag:
+                local_context, local_sources, confidence = search_chunks(prompt)
 
             history = [
                 {"role": m["role"], "content": m["content"]}
