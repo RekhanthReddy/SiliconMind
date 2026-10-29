@@ -6,6 +6,7 @@ Documents survive app restarts and cloud redeployments.
 """
 
 import os
+import sys
 from pinecone import Pinecone
 
 
@@ -67,8 +68,8 @@ def search_chunks(query: str, n_results: int = 5) -> tuple[str, list[str], dict]
 
         # Best similarity score
         first = hits[0]
-        best_score = round(first._score if hasattr(first, '_score') else first.get("_score", 0.0), 3)
-
+        best_score = round(float(first.score), 3)
+        
         # Confidence thresholds
         if best_score >= 0.75:
             level = "high"
